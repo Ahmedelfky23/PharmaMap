@@ -1,6 +1,8 @@
 // Multiple Overpass endpoints — tried in order until one succeeds.
 // kumi.systems is often down/rate-limited, so we fall back to the official mirrors.
 const OVERPASS_ENDPOINTS = [
+  "https://overpass.openstreetmap.ru/api/interpreter", // أضفنا السيرفر الروسي (قوي جداً ومبيعملش بلوك كتير)
+  "https://overpass.private.coffee/api/interpreter",   // السيرفر اللي طلبته
   "https://overpass-api.de/api/interpreter",
   "https://lz4.overpass-api.de/api/interpreter",
   "https://z.overpass-api.de/api/interpreter",
