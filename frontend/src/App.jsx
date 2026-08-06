@@ -85,7 +85,7 @@ function App() {
       {/* Desktop layout: side-by-side | Mobile: map full, sidebar as bottom sheet */}
       <div className="flex flex-1 overflow-hidden lg:px-[10%] lg:py-6 lg:gap-8 relative">
         {/* Map Container */}
-        <div className="flex-1 min-w-0 relative rounded-none lg:rounded-3xl overflow-hidden shadow-xl border-0 lg:border lg:border-slate-200 bg-white">
+        <div className="flex-1 min-w-0 h-full relative rounded-none lg:rounded-3xl overflow-hidden shadow-xl border-0 lg:border lg:border-slate-200 bg-white">
           <Map
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -101,7 +101,7 @@ function App() {
         </div>
 
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-95 shrink-0 overflow-y-auto">
+        <div className="hidden lg:block w-95nk-0 overflow-y-auto">
           <Sidebar
             pharmacy={selectedPharmacy}
             onEdit={handleEdit}

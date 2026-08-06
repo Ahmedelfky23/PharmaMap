@@ -173,7 +173,7 @@ function PharmacyForm({
 
 
 return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-3000lex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-3000 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:w-162.5 max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-slate-200">
         
         {/* Header */}

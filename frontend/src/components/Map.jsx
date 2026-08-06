@@ -186,7 +186,7 @@ function Map({
       <MapContainer
         center={initialCenter}
         zoom={initialZoom}
-        style={{ width: "100%", height: "100vh" }}
+        style={{ width: "100%", height: "100%" }}
       >
         <TileLayer
           attribution="© OpenStreetMap"
