@@ -5,6 +5,7 @@ import {
   Marker,
   useMap,
 } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
@@ -268,8 +269,13 @@ function Map({
           />
         )}
 
-        {/* OSM pharmacies */}
-        {filteredOSM.map((pharmacy) => {
+        <MarkerClusterGroup 
+          chunkedLoading={true} 
+          maxClusterRadius={50}
+          showCoverageOnHover={false}
+        >
+          {/* OSM pharmacies */}
+          {filteredOSM.map((pharmacy) => {
           const lat = pharmacy.lat ?? pharmacy.center?.lat;
           const lon = pharmacy.lon ?? pharmacy.center?.lon;
 
@@ -298,6 +304,7 @@ function Map({
             }}
           />
         ))}
+        </MarkerClusterGroup>
       </MapContainer>
     </>
   );
