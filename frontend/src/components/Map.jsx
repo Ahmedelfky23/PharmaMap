@@ -1,0 +1,248 @@
+import { useEffect, useState, useRef } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+} from "react-leaflet";
+
+import SearchBar from "./SearchBar";
+import AddPharmacyButton from "./AddPharmacyButton";
+import AddPharmacyMapClick from "./AddPharmacyMapClick";
+
+import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
+import api from "../services/api";
+import L from "leaflet";
+
+// Default blue marker icon
+const defaultIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Green icon for DB pharmacies
+const greenIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Red/pulse icon for user's location
+const userIcon = new L.DivIcon({
+  className: "",
+  html: `
+    <div style="
+      position: relative;
+      width: 20px;
+      height: 20px;
+    ">
+      <div style="
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        background: rgba(59,130,246,0.25);
+        animation: userPulse 1.8s ease-out infinite;
+      "></div>
+      <div style="
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: rgba(59,130,246,0.4);
+        animation: userPulse 1.8s ease-out infinite 0.4s;
+      "></div>
+      <div style="
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #06b6d4);
+        border: 3px solid white;
+        box-shadow: 0 3px 12px rgba(59,130,246,0.6);
+      "></div>
+    </div>
+    <style>
+      @keyframes userPulse {
+        0%   { transform: scale(1); opacity: 0.7; }
+        100% { transform: scale(2.5); opacity: 0; }
+      }
+    </style>
+  `,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
+// Component to fly to a location when userLocation changes
+function FlyToLocation({ userLocation }) {
+  const map = useMap();
+  const didFly = useRef(false);
+
+  useEffect(() => {
+    if (userLocation && !didFly.current) {
+      map.flyTo([userLocation.lat, userLocation.lon], 14, {
+        duration: 2,
+      });
+      didFly.current = true;
+    }
+  }, [userLocation, map]);
+
+  return null;
+}
+
+function Map({
+  searchTerm,
+  setSearchTerm,
+  setSelectedPharmacy,
+  isAdding,
+  setIsAdding,
+  setShowForm,
+  setNewLocation,
+  refreshKey,
+  userLocation, // { lat, lon } or null
+}) {
+  const [osmPharmacies, setOsmPharmacies] = useState([]);
+  const [myPharmacies, setMyPharmacies] = useState([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
+
+  // Load OSM pharmacies
+  useEffect(() => {
+    async function loadOSM() {
+      if (userLocation) {
+        // Load nearby pharmacies only
+        setLoadingNearby(true);
+        try {
+          const nearby = await getNearbyPharmacies(
+            userLocation.lat,
+            userLocation.lon,
+            3000
+          );
+          setOsmPharmacies(nearby);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingNearby(false);
+        }
+      } else {
+        // Load all Egypt pharmacies
+        const osm = await getEgyptPharmacies();
+        setOsmPharmacies(osm);
+      }
+    }
+    loadOSM();
+  }, [userLocation]);
+
+  // Reload DB pharmacies whenever refreshKey changes
+  useEffect(() => {
+    async function loadMyPharmacies() {
+      try {
+        const res = await api.get("/pharmacies");
+        setMyPharmacies(res.data);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    loadMyPharmacies();
+  }, [refreshKey]);
+
+  const filteredOSM = osmPharmacies.filter((pharmacy) =>
+    (pharmacy.tags?.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const initialCenter = userLocation
+    ? [userLocation.lat, userLocation.lon]
+    : [26.8206, 30.8025];
+  const initialZoom = userLocation ? 14 : 6;
+
+  return (
+    <>
+      <AddPharmacyButton isAdding={isAdding} setIsAdding={setIsAdding} />
+
+      <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+
+      {/* Loading overlay */}
+      {loadingNearby && (
+        <div
+          className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-4"
+          style={{ background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)" }}
+        >
+          <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+          <p className="text-white font-semibold text-lg">
+            جاري البحث عن صيدليات قريبة منك...
+          </p>
+        </div>
+      )}
+
+      <MapContainer
+        center={initialCenter}
+        zoom={initialZoom}
+        style={{ width: "100%", height: "100vh" }}
+      >
+        <TileLayer
+          attribution="© OpenStreetMap"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* Fly to user location smoothly */}
+        {userLocation && <FlyToLocation userLocation={userLocation} />}
+
+        <AddPharmacyMapClick
+          isAdding={isAdding}
+          setNewLocation={setNewLocation}
+          setShowForm={setShowForm}
+        />
+
+        {/* User location marker */}
+        {userLocation && (
+          <Marker
+            position={[userLocation.lat, userLocation.lon]}
+            icon={userIcon}
+          />
+        )}
+
+        {/* OSM pharmacies */}
+        {filteredOSM.map((pharmacy) => {
+          const lat = pharmacy.lat ?? pharmacy.center?.lat;
+          const lon = pharmacy.lon ?? pharmacy.center?.lon;
+
+          if (!lat || !lon) return null;
+
+          return (
+            <Marker
+              key={`osm-${pharmacy.id}`}
+              position={[lat, lon]}
+              icon={defaultIcon}
+              eventHandlers={{
+                click: () => setSelectedPharmacy(pharmacy),
+              }}
+            />
+          );
+        })}
+
+        {/* DB pharmacies */}
+        {myPharmacies.map((pharmacy) => (
+          <Marker
+            key={`db-${pharmacy.id}`}
+            position={[pharmacy.latitude, pharmacy.longitude]}
+            icon={greenIcon}
+            eventHandlers={{
+              click: () => setSelectedPharmacy(pharmacy),
+            }}
+          />
+        ))}
+      </MapContainer>
+    </>
+  );
+}
+
+export default Map;
