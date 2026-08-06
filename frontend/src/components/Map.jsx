@@ -98,6 +98,42 @@ function FlyToLocation({ userLocation }) {
   return null;
 }
 
+// Component to auto-zoom map based on search results
+function FitBoundsOnSearch({ searchTerm, osmPharmacies, dbPharmacies }) {
+  const map = useMap();
+
+  useEffect(() => {
+    // We only want to zoom if the user actually typed something
+    if (!searchTerm || searchTerm.trim().length === 0) return;
+
+    // Debounce the fitBounds so it doesn't jump crazily on every keystroke
+    const timeout = setTimeout(() => {
+      const allLatsLons = [];
+
+      osmPharmacies.forEach((p) => {
+        const lat = p.lat ?? p.center?.lat;
+        const lon = p.lon ?? p.center?.lon;
+        if (lat && lon) allLatsLons.push([lat, lon]);
+      });
+
+      dbPharmacies.forEach((p) => {
+        if (p.latitude && p.longitude) {
+          allLatsLons.push([p.latitude, p.longitude]);
+        }
+      });
+
+      if (allLatsLons.length > 0) {
+        const bounds = L.latLngBounds(allLatsLons);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: true, duration: 1 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [searchTerm, osmPharmacies, dbPharmacies, map]);
+
+  return null;
+}
+
 function Map({
   searchTerm,
   setSearchTerm,
@@ -160,6 +196,12 @@ function Map({
       .includes(searchTerm.toLowerCase())
   );
 
+  const filteredDB = myPharmacies.filter((pharmacy) =>
+    (pharmacy.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   const initialCenter = userLocation
     ? [userLocation.lat, userLocation.lon]
     : [26.8206, 30.8025];
@@ -205,6 +247,13 @@ function Map({
         {/* Fly to user location smoothly */}
         {userLocation && <FlyToLocation userLocation={userLocation} />}
 
+        {/* Fit bounds to search results */}
+        <FitBoundsOnSearch 
+          searchTerm={searchTerm} 
+          osmPharmacies={filteredOSM} 
+          dbPharmacies={filteredDB} 
+        />
+
         <AddPharmacyMapClick
           isAdding={isAdding}
           setNewLocation={setNewLocation}
@@ -239,7 +288,7 @@ function Map({
         })}
 
         {/* DB pharmacies */}
-        {myPharmacies.map((pharmacy) => (
+        {filteredDB.map((pharmacy) => (
           <Marker
             key={`db-${pharmacy.id}`}
             position={[pharmacy.latitude, pharmacy.longitude]}
