@@ -1,4 +1,4 @@
-const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 export async function getEgyptPharmacies() {
   const query = `
 [out:json][timeout:60];
@@ -12,7 +12,10 @@ out center tags qt;
 
   const response = await fetch(OVERPASS_URL, {
     method: "POST",
-    body: query,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "data=" + encodeURIComponent(query),
   });
 
   if (!response.ok) {
@@ -34,7 +37,10 @@ out center tags qt;
 
   const response = await fetch(OVERPASS_URL, {
     method: "POST",
-    body: query,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "data=" + encodeURIComponent(query),
   });
 
   if (!response.ok) {
