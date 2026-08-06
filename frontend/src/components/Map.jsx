@@ -4,6 +4,7 @@ import {
   TileLayer,
   Marker,
   useMap,
+  ZoomControl,
 } from "react-leaflet";
 
 import SearchBar from "./SearchBar";
@@ -187,11 +188,14 @@ function Map({
         center={initialCenter}
         zoom={initialZoom}
         style={{ width: "100%", height: "100%" }}
+        zoomControl={false}
       >
         <TileLayer
           attribution="© OpenStreetMap"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {/* Zoom buttons at bottom-right, away from the search bar */}
+        <ZoomControl position="bottomright" />
 
         {/* Fly to user location smoothly */}
         {userLocation && <FlyToLocation userLocation={userLocation} />}

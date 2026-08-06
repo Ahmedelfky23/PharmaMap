@@ -101,7 +101,7 @@ function App() {
         </div>
 
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-95nk-0 overflow-y-auto">
+        <div className="hidden lg:block w-95 shrink-0 overflow-y-auto">
           <Sidebar
             pharmacy={selectedPharmacy}
             onEdit={handleEdit}
@@ -146,6 +146,15 @@ function App() {
             onClick={() => setSelectedPharmacy(null)}
           />
         )}
+      </div>
+
+      {/* Copyright Footer — visible on all screen sizes */}
+      <div className="shrink-0 bg-slate-900/70 backdrop-blur-sm border-t border-white/10 py-1.5 text-center">
+        <p className="text-[11px] text-slate-400 font-medium tracking-wide">
+          © 2025{" "}
+          <span className="text-blue-400 font-semibold">Abo_feky</span>
+          {" "}· All rights reserved
+        </p>
       </div>
 
       {/* Add Form */}
