@@ -15,10 +15,22 @@ import AddPharmacyMapClick from "./AddPharmacyMapClick";
 import api from "../services/api";
 import L from "leaflet";
 
-// Green icon for DB pharmacies (all pharmacies are now from DB)
+// Green icon for imported OSM pharmacies
 const greenIcon = new L.Icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Red icon for user-added pharmacies
+const redIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
   shadowUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
   iconSize: [25, 41],
@@ -339,7 +351,7 @@ function Map({
             <Marker
               key={pharmacy.id}
               position={[pharmacy.latitude, pharmacy.longitude]}
-              icon={greenIcon}
+              icon={pharmacy.source === "osm" ? greenIcon : redIcon}
               eventHandlers={{
                 click: () => setSelectedPharmacy(pharmacy),
               }}
