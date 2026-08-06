@@ -82,17 +82,19 @@ const userIcon = new L.DivIcon({
   iconAnchor: [10, 10],
 });
 
-// Component to fly to a location when userLocation changes
+// Component to zoom to user location — uses setView (instant) instead of flyTo
+// because flyTo animations can be interrupted on slow mobile devices.
 function FlyToLocation({ userLocation }) {
   const map = useMap();
   const didFly = useRef(false);
 
   useEffect(() => {
     if (userLocation && !didFly.current) {
-      map.flyTo([userLocation.lat, userLocation.lon], 14, {
-        duration: 2,
-      });
       didFly.current = true;
+      // Small delay ensures the map tile layer is ready before zooming
+      setTimeout(() => {
+        map.setView([userLocation.lat, userLocation.lon], 15, { animate: true });
+      }, 300);
     }
   }, [userLocation, map]);
 
@@ -187,6 +189,8 @@ function Map({
   const [myPharmacies, setMyPharmacies] = useState([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
   const [loadingDB, setLoadingDB] = useState(false);
+  const [osmError, setOsmError] = useState(false); // true when all Overpass endpoints fail
+  const [retryKey, setRetryKey] = useState(0);    // increment to retry
 
   // Load OSM pharmacies based on location status
   useEffect(() => {
@@ -197,15 +201,16 @@ function Map({
     let cancelled = false;
 
     async function loadOSM() {
+      setOsmError(false);
       setLoadingNearby(true);
       try {
         let osm = [];
         if (locationStatus === "granted" && userLocation) {
-          // Load only nearby pharmacies for better performance (3km radius)
+          // 5km radius — large enough to find pharmacies even in less-dense areas
           osm = await getNearbyPharmacies(
             userLocation.lat,
             userLocation.lon,
-            3000
+            5000
           );
         } else {
           // If skipped, load all Egypt pharmacies
@@ -217,6 +222,9 @@ function Map({
         }
       } catch (err) {
         console.error(err);
+        if (!cancelled) {
+          setOsmError(true);
+        }
       } finally {
         if (!cancelled) {
           setLoadingNearby(false);
@@ -225,10 +233,10 @@ function Map({
     }
 
     loadOSM();
-    // Use a flag instead of AbortController so the fetch always completes
-    // (AbortController was aborting slow Overpass requests on mobile)
     return () => { cancelled = true; };
-  }, [locationStatus, userLocation]);
+  // retryKey added so user can manually retry after an error
+  }, [locationStatus, userLocation, retryKey]);
+
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
@@ -295,6 +303,35 @@ function Map({
           <p className="text-white font-semibold text-lg">
             جاري البحث عن صيدليات قريبة منك...
           </p>
+        </div>
+      )}
+
+      {/* Error overlay — all Overpass endpoints failed */}
+      {osmError && !loadingNearby && (
+        <div
+          className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-5 px-6"
+          style={{ background: "rgba(15,23,42,0.75)", backdropFilter: "blur(4px)" }}
+        >
+          <div className="text-5xl">⚠️</div>
+          <p className="text-white font-bold text-lg text-center">
+            مش قادر يحمل بيانات الصيدليات
+          </p>
+          <p className="text-slate-300 text-sm text-center">
+            فيه مشكلة في الاتصال بخرائط OpenStreetMap. اتأكد من النت وحاول تاني.
+          </p>
+          <button
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="mt-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-95"
+          >
+            🔄 إعادة المحاولة
+          </button>
+        </div>
+      )}
+
+      {/* "No pharmacies found" notice — fetch succeeded but 0 results */}
+      {!loadingNearby && !osmError && osmPharmacies.length === 0 && locationStatus === "granted" && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-1000 bg-slate-900/90 backdrop-blur-sm text-white text-sm font-medium px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 whitespace-nowrap">
+          📍 مافيش صيدليات مسجّلة في نطاق 5 كم
         </div>
       )}
 
