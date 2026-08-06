@@ -1,9 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
-  useMap,
   ZoomControl,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -84,22 +83,6 @@ const userIcon = new L.DivIcon({
 });
 
 
-// Component to fly to a location when userLocation changes
-function FlyToLocation({ userLocation }) {
-  const map = useMap();
-  const didFly = useRef(false);
-
-  useEffect(() => {
-    if (userLocation && !didFly.current) {
-      map.flyTo([userLocation.lat, userLocation.lon], 14, {
-        duration: 2,
-      });
-      didFly.current = true;
-    }
-  }, [userLocation, map]);
-
-  return null;
-}
 
 function Map({
   searchTerm,
@@ -186,9 +169,6 @@ function Map({
         />
         {/* Zoom buttons at bottom-right, away from the search bar */}
         <ZoomControl position="bottomright" />
-
-        {/* Fly to user location smoothly */}
-        {userLocation && <FlyToLocation userLocation={userLocation} />}
 
         <AddPharmacyMapClick
           isAdding={isAdding}
