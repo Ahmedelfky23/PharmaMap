@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   useMap,
   useMapEvents,
+  Polyline,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
@@ -81,6 +82,19 @@ const userIcon = new L.DivIcon({
   iconSize: [20, 20],
   iconAnchor: [10, 10],
 });
+
+// Calculate distance between two coordinates in km
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+  return R * c; 
+}
 
 // Component to zoom to user location
 function FlyToLocation({ userLocation }) {
@@ -191,6 +205,59 @@ function Map({
   const [pharmacies, setPharmacies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [bounds, setBounds] = useState(null);
+  const [routeData, setRouteData] = useState(null);
+
+  // Derive nearest pharmacy using useMemo
+  const nearestPharmacy = useMemo(() => {
+    if (!userLocation || pharmacies.length === 0) return null;
+
+    let minDistance = Infinity;
+    let closest = null;
+
+    pharmacies.forEach((p) => {
+      const dist = calculateDistance(
+        userLocation.lat,
+        userLocation.lon,
+        p.latitude,
+        p.longitude
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        closest = p;
+      }
+    });
+
+    return closest;
+  }, [userLocation, pharmacies]);
+
+  // Fetch route when nearest pharmacy changes
+  useEffect(() => {
+    if (!nearestPharmacy || !userLocation) return;
+    
+    let isMounted = true;
+
+    const fetchRoute = async () => {
+      try {
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation.lon},${userLocation.lat};${nearestPharmacy.longitude},${nearestPharmacy.latitude}?geometries=geojson`;
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
+        
+        if (isMounted && data.routes && data.routes.length > 0) {
+          // OSRM returns [lon, lat], Leaflet Polyline needs [lat, lon]
+          const coords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          setRouteData({ pharmacyId: nearestPharmacy.id, coords });
+        }
+      } catch (err) {
+        console.error("Failed to fetch route:", err);
+      }
+    };
+
+    fetchRoute();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [nearestPharmacy, userLocation]);
 
   // Fetch pharmacies based on bounds and search term
   useEffect(() => {
@@ -338,6 +405,14 @@ function Map({
           <Marker
             position={[userLocation.lat, userLocation.lon]}
             icon={userIcon}
+          />
+        )}
+
+        {/* Route to nearest pharmacy */}
+        {routeData && nearestPharmacy && routeData.pharmacyId === nearestPharmacy.id && (
+          <Polyline 
+            positions={routeData.coords} 
+            pathOptions={{ color: '#3b82f6', weight: 5, opacity: 0.7, dashArray: '10, 15', lineCap: 'round' }} 
           />
         )}
 
