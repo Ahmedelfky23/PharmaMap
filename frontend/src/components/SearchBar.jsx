@@ -1,6 +1,6 @@
 function SearchBar({ searchTerm, setSearchTerm }) {
   return (
-    <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[2000] w-[90%] sm:w-[450px]">
+    <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-2000 w-[90%] sm:w-112.5">
       <div className="relative">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
           <span className="text-slate-400 text-lg">🔍</span>

@@ -101,7 +101,7 @@ function App() {
         </div>
 
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-[380px] shrink-0 overflow-y-auto">
+        <div className="hidden lg:block w-95 shrink-0 overflow-y-auto">
           <Sidebar
             pharmacy={selectedPharmacy}
             onEdit={handleEdit}
@@ -111,7 +111,7 @@ function App() {
 
         {/* Mobile Bottom Sheet Sidebar */}
         <div
-          className={`lg:hidden fixed inset-x-0 bottom-0 z-[2500] transition-transform duration-500 ease-in-out ${
+          className={`lg:hidden fixed inset-x-0 bottom-0 z-2500 transition-transform duration-500 ease-in-out ${
             selectedPharmacy ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ maxHeight: "75vh" }}
@@ -142,7 +142,7 @@ function App() {
         {/* Mobile backdrop when sidebar open */}
         {selectedPharmacy && (
           <div
-            className="lg:hidden fixed inset-0 bg-black/30 z-[2400]"
+            className="lg:hidden fixed inset-0 bg-black/30 z-2400"
             onClick={() => setSelectedPharmacy(null)}
           />
         )}
