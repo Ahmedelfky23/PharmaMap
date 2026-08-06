@@ -186,43 +186,67 @@ function Map({
   const [osmPharmacies, setOsmPharmacies] = useState([]);
   const [myPharmacies, setMyPharmacies] = useState([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
+  const [loadingDB, setLoadingDB] = useState(false);
 
   // Load OSM pharmacies based on location status
   useEffect(() => {
     if (locationStatus === "pending") return; // Wait for user decision
+
+    const controller = new AbortController();
 
     async function loadOSM() {
       setLoadingNearby(true);
       try {
         let osm = [];
         if (locationStatus === "granted" && userLocation) {
-          // Load only nearby pharmacies for better performance
-          osm = await getNearbyPharmacies(userLocation.lat, userLocation.lon, 5000); // 5km radius
+          // Load only nearby pharmacies for better performance (3km radius)
+          osm = await getNearbyPharmacies(
+            userLocation.lat,
+            userLocation.lon,
+            3000,
+            controller.signal
+          );
         } else {
           // If skipped, load all Egypt pharmacies
-          osm = await getEgyptPharmacies();
+          osm = await getEgyptPharmacies(controller.signal);
         }
         setOsmPharmacies(osm);
       } catch (err) {
-        console.error(err);
+        if (err.name !== "AbortError") {
+          console.error(err);
+        }
       } finally {
         setLoadingNearby(false);
       }
     }
+
     loadOSM();
+    // Cancel in-flight request if locationStatus/userLocation changes or component unmounts
+    return () => controller.abort();
   }, [locationStatus, userLocation]);
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
+    const controller = new AbortController();
+
     async function loadMyPharmacies() {
+      setLoadingDB(true);
       try {
-        const res = await api.get("/pharmacies");
+        const res = await api.get("/pharmacies", {
+          signal: controller.signal,
+        });
         setMyPharmacies(res.data);
       } catch (err) {
-        console.log(err);
+        if (err.name !== "AbortError" && err.code !== "ERR_CANCELED") {
+          console.error(err);
+        }
+      } finally {
+        setLoadingDB(false);
       }
     }
+
     loadMyPharmacies();
+    return () => controller.abort();
   }, [refreshKey]);
 
   const filteredOSM = osmPharmacies.filter((pharmacy) =>
@@ -256,7 +280,7 @@ function Map({
 
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
-      {/* Loading overlay */}
+      {/* Loading overlay — OSM pharmacies */}
       {loadingNearby && (
         <div
           className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-4"
@@ -266,6 +290,14 @@ function Map({
           <p className="text-white font-semibold text-lg">
             جاري البحث عن صيدليات قريبة منك...
           </p>
+        </div>
+      )}
+
+      {/* Loading indicator — DB pharmacies (top-right badge) */}
+      {loadingDB && !loadingNearby && (
+        <div className="absolute top-4 right-4 z-1000 flex items-center gap-2 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-lg">
+          <div className="w-3 h-3 rounded-full border-2 border-blue-400/40 border-t-blue-400 animate-spin" />
+          جاري تحميل البيانات...
         </div>
       )}
 
