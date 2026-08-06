@@ -22,6 +22,15 @@ function App() {
     }
   }, [isDarkMode]);
 
+  // Keep the Render backend warm — ping immediately on load and every 13 min.
+  // Render free tier spins down after 15 min of inactivity (cold start = 30-60s).
+  useEffect(() => {
+    const ping = () => api.get("/ping").catch(() => {}); // silent — don't break app if ping fails
+    ping(); // fire immediately on app load
+    const interval = setInterval(ping, 13 * 60 * 1000); // every 13 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
