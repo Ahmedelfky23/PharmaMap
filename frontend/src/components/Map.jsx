@@ -12,7 +12,7 @@ import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
-import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
+import { getEgyptPharmacies } from "../services/overpass";
 import { getDBPharmacies } from "../services/api";
 import L from "leaflet";
 
@@ -83,6 +83,7 @@ const userIcon = new L.DivIcon({
   iconAnchor: [10, 10],
 });
 
+
 // Component to fly to a location when userLocation changes
 function FlyToLocation({ userLocation }) {
   const map = useMap();
@@ -113,34 +114,23 @@ function Map({
 }) {
   const [osmPharmacies, setOsmPharmacies] = useState([]);
   const [myPharmacies, setMyPharmacies] = useState([]);
-  const [loadingNearby, setLoadingNearby] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load OSM pharmacies
   useEffect(() => {
     async function loadOSM() {
-      if (userLocation) {
-        // Load nearby pharmacies only
-        setLoadingNearby(true);
-        try {
-          const nearby = await getNearbyPharmacies(
-            userLocation.lat,
-            userLocation.lon,
-            3000
-          );
-          setOsmPharmacies(nearby);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoadingNearby(false);
-        }
-      } else {
-        // Load all Egypt pharmacies
+      setIsLoading(true);
+      try {
         const osm = await getEgyptPharmacies();
         setOsmPharmacies(osm);
+      } catch (err) {
+        console.error("Error loading OSM pharmacies:", err);
+      } finally {
+        setIsLoading(false);
       }
     }
     loadOSM();
-  }, [userLocation]);
+  }, []);
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
@@ -162,10 +152,8 @@ function Map({
       .includes(searchTerm.toLowerCase())
   );
 
-  const initialCenter = userLocation
-    ? [userLocation.lat, userLocation.lon]
-    : [26.8206, 30.8025];
-  const initialZoom = userLocation ? 14 : 6;
+  const initialCenter = [26.8206, 30.8025];
+  const initialZoom = 6;
 
   return (
     <>
@@ -174,14 +162,14 @@ function Map({
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
       {/* Loading overlay */}
-      {loadingNearby && (
+      {isLoading && (
         <div
           className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-4"
           style={{ background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)" }}
         >
           <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
           <p className="text-white font-semibold text-lg">
-            جاري البحث عن صيدليات قريبة منك...
+            جاري تحميل الصيدليات على الخريطة...
           </p>
         </div>
       )}
