@@ -1,6 +1,7 @@
 // Multiple Overpass endpoints — tried in order until one succeeds.
 // kumi.systems is often down/rate-limited, so we fall back to the official mirrors.
 const OVERPASS_ENDPOINTS = [
+  "https://overpass.openstreetmap.ru/api/interpreter", // Often has better rate limits for mobile IPs
   "https://overpass-api.de/api/interpreter",
   "https://lz4.overpass-api.de/api/interpreter",
   "https://z.overpass-api.de/api/interpreter",
