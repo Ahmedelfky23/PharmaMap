@@ -190,9 +190,11 @@ function Map({
 
   // Load OSM pharmacies based on location status
   useEffect(() => {
-    if (locationStatus === "pending") return; // Wait for user decision
+    if (locationStatus === "pending") return;
+    // If location was granted but coords aren't ready yet, wait for next render
+    if (locationStatus === "granted" && !userLocation) return;
 
-    const controller = new AbortController();
+    let cancelled = false;
 
     async function loadOSM() {
       setLoadingNearby(true);
@@ -203,26 +205,29 @@ function Map({
           osm = await getNearbyPharmacies(
             userLocation.lat,
             userLocation.lon,
-            3000,
-            controller.signal
+            3000
           );
         } else {
           // If skipped, load all Egypt pharmacies
-          osm = await getEgyptPharmacies(controller.signal);
+          osm = await getEgyptPharmacies();
         }
-        setOsmPharmacies(osm);
+        // Only update state if this effect run is still current
+        if (!cancelled) {
+          setOsmPharmacies(osm);
+        }
       } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error(err);
-        }
+        console.error(err);
       } finally {
-        setLoadingNearby(false);
+        if (!cancelled) {
+          setLoadingNearby(false);
+        }
       }
     }
 
     loadOSM();
-    // Cancel in-flight request if locationStatus/userLocation changes or component unmounts
-    return () => controller.abort();
+    // Use a flag instead of AbortController so the fetch always completes
+    // (AbortController was aborting slow Overpass requests on mobile)
+    return () => { cancelled = true; };
   }, [locationStatus, userLocation]);
 
   // Reload DB pharmacies whenever refreshKey changes
