@@ -82,9 +82,10 @@ function App() {
 
       <Navbar />
 
-      <div className="flex flex-1 overflow-hidden px-[10%] py-6 gap-8">
+      {/* Desktop layout: side-by-side | Mobile: map full, sidebar as bottom sheet */}
+      <div className="flex flex-1 overflow-hidden lg:px-[10%] lg:py-6 lg:gap-8 relative">
         {/* Map Container */}
-        <div className="flex-2 relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-white">
+        <div className="flex-1 min-w-0 relative rounded-none lg:rounded-3xl overflow-hidden shadow-xl border-0 lg:border lg:border-slate-200 bg-white">
           <Map
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -99,12 +100,52 @@ function App() {
           />
         </div>
 
-        {/* Sidebar */}
-        <Sidebar
-          pharmacy={selectedPharmacy}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block w-[380px] shrink-0 overflow-y-auto">
+          <Sidebar
+            pharmacy={selectedPharmacy}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
+
+        {/* Mobile Bottom Sheet Sidebar */}
+        <div
+          className={`lg:hidden fixed inset-x-0 bottom-0 z-[2500] transition-transform duration-500 ease-in-out ${
+            selectedPharmacy ? "translate-y-0" : "translate-y-full"
+          }`}
+          style={{ maxHeight: "75vh" }}
+        >
+          {/* Pull handle */}
+          <div className="bg-white rounded-t-3xl pt-3 pb-0 flex justify-center border-t border-slate-200 shadow-2xl">
+            <div className="w-10 h-1 bg-slate-300 rounded-full mb-2" />
+          </div>
+          {/* Close button */}
+          {selectedPharmacy && (
+            <button
+              onClick={() => setSelectedPharmacy(null)}
+              className="absolute top-3 right-4 z-10 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"
+            >
+              ✕
+            </button>
+          )}
+          <div className="bg-white overflow-y-auto" style={{ maxHeight: "calc(75vh - 32px)" }}>
+            <Sidebar
+              pharmacy={selectedPharmacy}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isMobile={true}
+            />
+          </div>
+        </div>
+
+        {/* Mobile backdrop when sidebar open */}
+        {selectedPharmacy && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/30 z-[2400]"
+            onClick={() => setSelectedPharmacy(null)}
+          />
+        )}
       </div>
 
       {/* Add Form */}

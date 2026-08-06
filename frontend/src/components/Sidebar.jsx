@@ -79,7 +79,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
 
   if (!pharmacy) {
     return (
-      <div className="w-400px bg-white rounded-2xl shadow-lg border border-slate-200/60 flex flex-col items-center justify-center p-8 text-center h-full">
+      <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/60 flex flex-col items-center justify-center p-8 text-center h-full">
         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
           <span className="text-3xl">📍</span>
         </div>
@@ -152,7 +152,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
         <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       )}
 
-      <div className="w-400px bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden flex flex-col h-full">
+      <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden flex flex-col h-full">
 
         {/* ── Hero Image ─────────────────────────────────── */}
         <div className="relative w-full group" style={{ height: hasImage ? "15rem" : "10rem" }}>
