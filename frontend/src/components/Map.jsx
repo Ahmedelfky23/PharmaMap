@@ -11,7 +11,7 @@ import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
-import { getNearbyPharmacies } from "../services/overpass";
+import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
 import api from "../services/api";
 import L from "leaflet";
 
@@ -115,35 +115,32 @@ function Map({
   const [loadingNearby, setLoadingNearby] = useState(false);
 
   // Load OSM pharmacies
-  // Load only nearby pharmacies
   useEffect(() => {
     async function loadOSM() {
-      // لو لسه الموقع متحددش، متحملش أي صيدليات
-      if (!userLocation) {
-        setOsmPharmacies([]);
-        return;
-      }
-
-      setLoadingNearby(true);
-
-      try {
-        const nearby = await getNearbyPharmacies(
-          userLocation.lat,
-          userLocation.lon,
-          3000,
-        );
-
-        setOsmPharmacies(nearby);
-      } catch (err) {
-        console.error(err);
-        setOsmPharmacies([]);
-      } finally {
-        setLoadingNearby(false);
+      if (userLocation) {
+        // Load nearby pharmacies only
+        setLoadingNearby(true);
+        try {
+          const nearby = await getNearbyPharmacies(
+            userLocation.lat,
+            userLocation.lon,
+            3000
+          );
+          setOsmPharmacies(nearby);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingNearby(false);
+        }
+      } else {
+        // Load all Egypt pharmacies
+        const osm = await getEgyptPharmacies();
+        setOsmPharmacies(osm);
       }
     }
-
     loadOSM();
   }, [userLocation]);
+
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
     async function loadMyPharmacies() {
@@ -160,7 +157,7 @@ function Map({
   const filteredOSM = osmPharmacies.filter((pharmacy) =>
     (pharmacy.tags?.name || "")
       .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
+      .includes(searchTerm.toLowerCase())
   );
 
   const initialCenter = userLocation
@@ -178,10 +175,7 @@ function Map({
       {loadingNearby && (
         <div
           className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-4"
-          style={{
-            background: "rgba(15,23,42,0.65)",
-            backdropFilter: "blur(4px)",
-          }}
+          style={{ background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)" }}
         >
           <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
           <p className="text-white font-semibold text-lg">
