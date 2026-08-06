@@ -1,5 +1,4 @@
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
-
+const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
 export async function getEgyptPharmacies() {
   const query = `
 [out:json][timeout:25];
