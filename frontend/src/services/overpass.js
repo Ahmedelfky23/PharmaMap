@@ -1,4 +1,11 @@
-const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
+// Multiple Overpass endpoints — tried in order until one succeeds.
+// kumi.systems is often down/rate-limited, so we fall back to the official mirrors.
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://z.overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
 
 // In-memory cache: key -> { data, timestamp }
 const cache = new Map();
@@ -19,20 +26,46 @@ function setCache(key, data) {
 }
 
 /**
+ * POST a query to the Overpass API, trying each endpoint in order.
+ * Returns parsed JSON elements array.
+ */
+async function overpassQuery(query) {
+  let lastError;
+
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: query,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} from ${url}`);
+      }
+
+      const data = await response.json();
+      return data.elements;
+    } catch (err) {
+      console.warn(`Overpass endpoint failed (${url}):`, err.message);
+      lastError = err;
+      // Try the next endpoint
+    }
+  }
+
+  throw new Error(
+    `All Overpass endpoints failed. Last error: ${lastError?.message}`
+  );
+}
+
+/**
  * Fetch pharmacies near a specific location within a given radius (meters).
  * Results are cached for 5 minutes so re-visits to the same area are instant.
  *
  * @param {number} lat
  * @param {number} lon
  * @param {number} radiusMeters
- * @param {AbortSignal} [signal] - optional AbortController signal
  */
-export async function getNearbyPharmacies(
-  lat,
-  lon,
-  radiusMeters = 3000,
-  signal
-) {
+export async function getNearbyPharmacies(lat, lon, radiusMeters = 3000) {
   // Round to ~110m grid so nearby points share the same cache key
   const roundedLat = Math.round(lat * 1000) / 1000;
   const roundedLon = Math.round(lon * 1000) / 1000;
@@ -51,28 +84,16 @@ export async function getNearbyPharmacies(
 out center tags;
 `;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    body: query,
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch nearby pharmacies.");
-  }
-
-  const data = await response.json();
-  setCache(cacheKey, data.elements);
-  return data.elements;
+  const elements = await overpassQuery(query);
+  setCache(cacheKey, elements);
+  return elements;
 }
 
 /**
  * Fetch ALL pharmacies in Egypt (used when user skips location).
  * Results are cached for 5 minutes.
- *
- * @param {AbortSignal} [signal] - optional AbortController signal
  */
-export async function getEgyptPharmacies(signal) {
+export async function getEgyptPharmacies() {
   const cacheKey = "egypt:all";
 
   const cached = getCached(cacheKey);
@@ -92,17 +113,7 @@ area["ISO3166-1"="EG"][admin_level=2]->.egypt;
 out center tags;
 `;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    body: query,
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pharmacies.");
-  }
-
-  const data = await response.json();
-  setCache(cacheKey, data.elements);
-  return data.elements;
+  const elements = await overpassQuery(query);
+  setCache(cacheKey, elements);
+  return elements;
 }
