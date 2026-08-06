@@ -1,12 +1,22 @@
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
 export async function getEgyptPharmacies() {
-  const query = `[out:json][timeout:60];
-area["ISO3166-1"="EG"][admin_level=2]->.egypt;
-nwr["amenity"="pharmacy"](area.egypt);
-out center tags qt;`;
+  const query = `
+[out:json][timeout:25];
 
-  const response = await fetch(OVERPASS_URL + "?data=" + encodeURIComponent(query), {
-    method: "GET",
+area["ISO3166-1"="EG"][admin_level=2]->.egypt;
+
+(
+  node["amenity"="pharmacy"](area.egypt);
+  way["amenity"="pharmacy"](area.egypt);
+  relation["amenity"="pharmacy"](area.egypt);
+);
+
+out center tags;
+`;
+
+  const response = await fetch(OVERPASS_URL, {
+    method: "POST",
+    body: query,
   });
 
   if (!response.ok) {
@@ -20,12 +30,19 @@ out center tags qt;`;
 
 // Fetch pharmacies near a specific location within a given radius (meters)
 export async function getNearbyPharmacies(lat, lon, radiusMeters = 3000) {
-  const query = `[out:json][timeout:25];
-nwr["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
-out center tags qt;`;
+  const query = `
+[out:json][timeout:25];
+(
+  node["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
+  way["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
+  relation["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
+);
+out center tags;
+`;
 
-  const response = await fetch(OVERPASS_URL + "?data=" + encodeURIComponent(query), {
-    method: "GET",
+  const response = await fetch(OVERPASS_URL, {
+    method: "POST",
+    body: query,
   });
 
   if (!response.ok) {
