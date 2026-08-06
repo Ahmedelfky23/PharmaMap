@@ -1,7 +1,12 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+];
 
 async function fetchEgyptPharmacies() {
   const query = `
@@ -15,22 +20,37 @@ async function fetchEgyptPharmacies() {
     out center tags;
   `;
 
-  console.log("Fetching pharmacies from Overpass API (this might take a few minutes)...");
-  
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "data=" + encodeURIComponent(query),
-  });
+  let lastError = null;
 
-  if (!response.ok) {
-    throw new Error(`Overpass API Error: ${response.status}`);
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    console.log(`\n[Import] Attempting to fetch from Overpass API: ${endpoint}`);
+    
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "PharmaMap-Egypt-Importer/1.0 (Ahmedelfky23/PharmaMap)",
+        },
+        body: "data=" + encodeURIComponent(query),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`[Import] Successfully fetched data from ${endpoint}`);
+      return data.elements;
+    } catch (err) {
+      console.error(`[Import] Fetch failed for ${endpoint}`);
+      console.error(err);
+      lastError = err;
+      // loop to next endpoint
+    }
   }
 
-  const data = await response.json();
-  return data.elements;
+  throw new Error(`All Overpass endpoints failed. Last error: ${lastError?.message || lastError}`);
 }
 
 async function importPharmacies() {
