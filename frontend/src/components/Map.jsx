@@ -11,7 +11,7 @@ import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
-import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
+import { getEgyptPharmacies } from "../services/overpass";
 import api from "../services/api";
 import L from "leaflet";
 
@@ -135,6 +135,41 @@ function FitBoundsOnSearch({ searchTerm, osmPharmacies, dbPharmacies }) {
   return null;
 }
 
+// Custom Marker Cluster Icon (Pop-out Design)
+const createCustomClusterIcon = (cluster) => {
+  const count = cluster.getChildCount();
+  
+  // Dynamic size based on count
+  let sizeClass = "w-10 h-10 text-sm";
+  let bgClass = "bg-linear-to-br from-blue-600 to-blue-700 shadow-blue-500/50";
+  let pointerClass = "bg-blue-700";
+
+  if (count >= 100) {
+    sizeClass = "w-12 h-12 text-base";
+    bgClass = "bg-linear-to-br from-indigo-600 to-indigo-700 shadow-indigo-500/50";
+    pointerClass = "bg-indigo-700";
+  }
+  if (count >= 500) {
+    sizeClass = "w-14 h-14 text-lg";
+    bgClass = "bg-linear-to-br from-purple-600 to-purple-700 shadow-purple-500/50";
+    pointerClass = "bg-purple-700";
+  }
+
+  return new L.DivIcon({
+    html: `
+      <div class="flex flex-col items-center group cursor-pointer">
+        <div class="relative flex items-center justify-center text-white font-extrabold rounded-full ${sizeClass} ${bgClass} border-[3px] border-white shadow-2xl transition-transform duration-300 group-hover:scale-110 z-10">
+          ${count}
+        </div>
+        <div class="w-3.5 h-3.5 ${pointerClass} rotate-45 -mt-2 border-b-[3px] border-r-[3px] border-white shadow-lg transition-transform duration-300 group-hover:translate-y-1"></div>
+      </div>
+    `,
+    className: "custom-cluster-marker bg-transparent border-none",
+    iconSize: L.point(40, 50, true),
+    iconAnchor: [20, 50],
+  });
+};
+
 function Map({
   searchTerm,
   setSearchTerm,
@@ -154,29 +189,19 @@ function Map({
   // Load OSM pharmacies
   useEffect(() => {
     async function loadOSM() {
-      if (userLocation) {
-        // Load nearby pharmacies only
-        setLoadingNearby(true);
-        try {
-          const nearby = await getNearbyPharmacies(
-            userLocation.lat,
-            userLocation.lon,
-            3000
-          );
-          setOsmPharmacies(nearby);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoadingNearby(false);
-        }
-      } else {
-        // Load all Egypt pharmacies
+      setLoadingNearby(true);
+      try {
+        // Load all Egypt pharmacies (clustering handles performance now)
         const osm = await getEgyptPharmacies();
         setOsmPharmacies(osm);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingNearby(false);
       }
     }
     loadOSM();
-  }, [userLocation]);
+  }, []);
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
@@ -273,6 +298,7 @@ function Map({
           chunkedLoading={true} 
           maxClusterRadius={50}
           showCoverageOnHover={false}
+          iconCreateFunction={createCustomClusterIcon}
         >
           {/* OSM pharmacies */}
           {filteredOSM.map((pharmacy) => {
