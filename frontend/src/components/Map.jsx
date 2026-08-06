@@ -89,7 +89,12 @@ function FlyToLocation({ userLocation }) {
   const didFly = useRef(false);
 
   useEffect(() => {
-    if (userLocation && !didFly.current) {
+    if (!userLocation) {
+      // Reset so we fly again next time location is turned on
+      didFly.current = false;
+      return;
+    }
+    if (!didFly.current) {
       didFly.current = true;
       // Small delay ensures the map tile layer is ready before zooming
       setTimeout(() => {
@@ -183,6 +188,7 @@ function Map({
   refreshKey,
   userLocation, // { lat, lon } or null
   locationStatus,
+  onToggleLocation,
   isDarkMode,
 }) {
   const [osmPharmacies, setOsmPharmacies] = useState([]);
@@ -292,6 +298,46 @@ function Map({
       <AddPharmacyButton isAdding={isAdding} setIsAdding={setIsAdding} />
 
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+
+      {/* Live location toggle button */}
+      <button
+        id="btn-toggle-location"
+        onClick={onToggleLocation}
+        title={locationStatus === "granted" ? "إيقاف تتبع موقعي" : "تفعيل موقعي"}
+        className="absolute bottom-6 right-4 z-1000 flex items-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-sm shadow-xl transition-all duration-300 active:scale-95"
+        style={locationStatus === "granted" ? {
+          background: "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)",
+          color: "white",
+          boxShadow: "0 8px 25px rgba(59,130,246,0.45)",
+        } : {
+          background: "rgba(15,23,42,0.82)",
+          color: "#94a3b8",
+          border: "1px solid rgba(255,255,255,0.12)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        {locationStatus === "granted" ? (
+          <>
+            <span style={{
+              display: "inline-block",
+              width: 10, height: 10,
+              borderRadius: "50%",
+              background: "white",
+              boxShadow: "0 0 0 3px rgba(255,255,255,0.35)",
+              animation: "userPulse 1.8s ease-out infinite",
+            }} />
+            موقعي شغّال
+          </>
+        ) : (
+          <>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            تفعيل موقعي
+          </>
+        )}
+      </button>
 
       {/* Loading overlay — OSM pharmacies */}
       {loadingNearby && (

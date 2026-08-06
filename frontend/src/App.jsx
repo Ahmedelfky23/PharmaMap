@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import Navbar from "./components/Navbar";
 import Map from "./components/Map";
@@ -37,10 +37,48 @@ function App() {
 
   // Location state
   // "pending" = showing permission screen
-  // "granted" = user allowed location
-  // "skipped" = user skipped
+  // "granted" = user allowed location (live tracking active)
+  // "skipped" = user skipped / toggled off
   const [locationStatus, setLocationStatus] = useState("pending");
   const [userLocation, setUserLocation] = useState(null); // { lat, lon }
+  const watchIdRef = useRef(null);
+
+  // Start live location tracking
+  function startTracking(onSuccess, onError) {
+    if (watchIdRef.current !== null) return; // already watching
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lon: longitude });
+        setLocationStatus("granted");
+        if (onSuccess) onSuccess(latitude, longitude);
+      },
+      (err) => {
+        console.error(err);
+        if (onError) onError(err);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  // Stop live location tracking
+  function stopTracking() {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setUserLocation(null);
+    setLocationStatus("skipped");
+  }
+
+  // Toggle live location on / off (called from the map button)
+  function handleToggleLocation() {
+    if (locationStatus === "granted") {
+      stopTracking();
+    } else {
+      startTracking();
+    }
+  }
 
   // Add form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -56,8 +94,10 @@ function App() {
 
   // Handlers for location permission screen
   function handleLocationGranted(lat, lon) {
-    setUserLocation({ lat, lon });
+    setUserLocation({ lat: lat, lon: lon });
     setLocationStatus("granted");
+    // Upgrade to live tracking after first permission granted
+    startTracking();
   }
 
   function handleLocationSkip() {
@@ -121,6 +161,7 @@ function App() {
             refreshKey={refreshKey}
             userLocation={locationStatus !== "pending" ? userLocation : null}
             locationStatus={locationStatus}
+            onToggleLocation={handleToggleLocation}
             isDarkMode={isDarkMode}
           />
         </div>
