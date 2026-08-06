@@ -100,4 +100,8 @@ async function importPharmacies() {
   }
 }
 
-importPharmacies();
+if (require.main === module) {
+  importPharmacies();
+}
+
+module.exports = { importPharmacies };
