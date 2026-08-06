@@ -44,7 +44,10 @@ out center tags;
 
   const response = await fetch(OVERPASS_URL, {
     method: "POST",
-    body: query,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "data=" + encodeURIComponent(query),
   });
 
   if (!response.ok) {
@@ -74,7 +77,10 @@ out center tags;
 
   const response = await fetch(OVERPASS_URL, {
     method: "POST",
-    body: query,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "data=" + encodeURIComponent(query),
   });
 
   if (!response.ok) {
