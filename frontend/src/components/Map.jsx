@@ -144,7 +144,7 @@ function Map({
   useEffect(() => {
     async function loadMyPharmacies() {
       try {
-        const res = await api.get(`/pharmacies?_t=${Date.now()}`);
+        const res = await api.get("/pharmacies");
         setMyPharmacies(res.data);
       } catch (err) {
         console.log(err);
