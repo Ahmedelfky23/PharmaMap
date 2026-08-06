@@ -6,13 +6,14 @@ import {
   useMap,
   ZoomControl,
 } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
 import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
-import api from "../services/api";
+import { getDBPharmacies } from "../services/api";
 import L from "leaflet";
 
 // Default blue marker icon
@@ -145,8 +146,9 @@ function Map({
   useEffect(() => {
     async function loadMyPharmacies() {
       try {
-        const res = await api.get("/pharmacies");
-        setMyPharmacies(res.data);
+        const forceRefresh = refreshKey > 0;
+        const data = await getDBPharmacies(forceRefresh);
+        setMyPharmacies(data);
       } catch (err) {
         console.log(err);
       }
@@ -214,36 +216,38 @@ function Map({
           />
         )}
 
-        {/* OSM pharmacies */}
-        {filteredOSM.map((pharmacy) => {
-          const lat = pharmacy.lat ?? pharmacy.center?.lat;
-          const lon = pharmacy.lon ?? pharmacy.center?.lon;
+        <MarkerClusterGroup chunkedLoading>
+          {/* OSM pharmacies */}
+          {filteredOSM.map((pharmacy) => {
+            const lat = pharmacy.lat ?? pharmacy.center?.lat;
+            const lon = pharmacy.lon ?? pharmacy.center?.lon;
 
-          if (!lat || !lon) return null;
+            if (!lat || !lon) return null;
 
-          return (
+            return (
+              <Marker
+                key={`osm-${pharmacy.id}`}
+                position={[lat, lon]}
+                icon={defaultIcon}
+                eventHandlers={{
+                  click: () => setSelectedPharmacy(pharmacy),
+                }}
+              />
+            );
+          })}
+
+          {/* DB pharmacies */}
+          {myPharmacies.map((pharmacy) => (
             <Marker
-              key={`osm-${pharmacy.id}`}
-              position={[lat, lon]}
-              icon={defaultIcon}
+              key={`db-${pharmacy.id}`}
+              position={[pharmacy.latitude, pharmacy.longitude]}
+              icon={greenIcon}
               eventHandlers={{
                 click: () => setSelectedPharmacy(pharmacy),
               }}
             />
-          );
-        })}
-
-        {/* DB pharmacies */}
-        {myPharmacies.map((pharmacy) => (
-          <Marker
-            key={`db-${pharmacy.id}`}
-            position={[pharmacy.latitude, pharmacy.longitude]}
-            icon={greenIcon}
-            eventHandlers={{
-              click: () => setSelectedPharmacy(pharmacy),
-            }}
-          />
-        ))}
+          ))}
+        </MarkerClusterGroup>
       </MapContainer>
     </>
   );

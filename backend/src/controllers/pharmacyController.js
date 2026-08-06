@@ -10,6 +10,8 @@ const getAllPharmacies = async (req, res) => {
       },
     });
 
+    // Cache لمدة 2 دقيقة في المتصفح — يقلل الـ requests الزيادة
+    res.set("Cache-Control", "public, max-age=120, stale-while-revalidate=60");
     res.json(pharmacies);
   } catch (error) {
     res.status(500).json({
