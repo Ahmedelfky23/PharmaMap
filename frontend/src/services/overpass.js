@@ -10,9 +10,8 @@ nwr["amenity"="pharmacy"](area.egypt);
 out center tags qt;
 `;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    body: query,
+  const response = await fetch(OVERPASS_URL + "?data=" + encodeURIComponent(query), {
+    method: "GET",
   });
 
   if (!response.ok) {
@@ -32,9 +31,8 @@ nwr["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
 out center tags qt;
 `;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    body: query,
+  const response = await fetch(OVERPASS_URL + "?data=" + encodeURIComponent(query), {
+    method: "GET",
   });
 
   if (!response.ok) {
