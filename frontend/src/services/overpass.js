@@ -1,4 +1,4 @@
-const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
 // --- Cache helpers ---
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
