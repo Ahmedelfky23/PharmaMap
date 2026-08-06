@@ -7,22 +7,33 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter",
 ];
 
-// In-memory cache: key -> { data, timestamp }
-const cache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+import { cacheGet, cacheSet } from "./cache";
 
-function getCached(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-    cache.delete(key);
-    return null;
+// In-memory fallback for within-session deduplication (very fast, complements localStorage)
+const memCache = new Map();
+const MEM_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Persistent cache TTLs
+const NEARBY_TTL_MS  = 20 * 60 * 1000; // 20 minutes for nearby results
+const EGYPT_TTL_MS   = 30 * 60 * 1000; // 30 minutes for Egypt-wide results
+
+function getFromAnyCache(key) {
+  // 1. Check fast in-memory cache first
+  const mem = memCache.get(key);
+  if (mem && Date.now() - mem.timestamp < MEM_TTL_MS) return mem.data;
+  // 2. Fall back to localStorage (survives page refresh)
+  const persistent = cacheGet(key);
+  if (persistent !== null) {
+    // Warm the in-memory cache so subsequent calls in this session are instant
+    memCache.set(key, { data: persistent, timestamp: Date.now() });
+    return persistent;
   }
-  return entry.data;
+  return null;
 }
 
-function setCache(key, data) {
-  cache.set(key, { data, timestamp: Date.now() });
+function saveToAllCaches(key, data, ttlMs) {
+  memCache.set(key, { data, timestamp: Date.now() });
+  cacheSet(key, data, ttlMs);
 }
 
 /**
@@ -75,7 +86,7 @@ export async function getNearbyPharmacies(lat, lon, radiusMeters = 3000) {
   const roundedLon = Math.round(lon * 1000) / 1000;
   const cacheKey = `nearby:${roundedLat}:${roundedLon}:${radiusMeters}`;
 
-  const cached = getCached(cacheKey);
+  const cached = getFromAnyCache(cacheKey);
   if (cached) return cached;
 
   const query = `
@@ -89,7 +100,7 @@ out center tags;
 `;
 
   const elements = await overpassQuery(query);
-  setCache(cacheKey, elements);
+  saveToAllCaches(cacheKey, elements, NEARBY_TTL_MS);
   return elements;
 }
 
@@ -100,7 +111,7 @@ out center tags;
 export async function getEgyptPharmacies() {
   const cacheKey = "egypt:all";
 
-  const cached = getCached(cacheKey);
+  const cached = getFromAnyCache(cacheKey);
   if (cached) return cached;
 
   const query = `
@@ -118,6 +129,6 @@ out center tags;
 `;
 
   const elements = await overpassQuery(query);
-  setCache(cacheKey, elements);
+  saveToAllCaches(cacheKey, elements, EGYPT_TTL_MS);
   return elements;
 }

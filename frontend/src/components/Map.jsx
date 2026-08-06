@@ -12,6 +12,7 @@ import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
 import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
+import { cacheGet, cacheSet } from "../services/cache";
 import api from "../services/api";
 import L from "leaflet";
 
@@ -199,42 +200,47 @@ function Map({
   const [retryKey, setRetryKey] = useState(0);    // increment to retry
 
   // Load OSM pharmacies based on location status
+  // Pattern: stale-while-revalidate
+  //   1. Show cached data instantly (if any) → no spinner on revisit
+  //   2. Always fetch fresh data in the background → keep map up to date
   useEffect(() => {
     if (locationStatus === "pending") return;
-    // If location was granted but coords aren't ready yet, wait for next render
     if (locationStatus === "granted" && !userLocation) return;
 
     let cancelled = false;
 
+    // Build the same cache key the overpass service uses
+    const osmCacheKey = locationStatus === "granted" && userLocation
+      ? `nearby:${Math.round(userLocation.lat * 1000) / 1000}:${Math.round(userLocation.lon * 1000) / 1000}:5000`
+      : "egypt:all";
+
+    // Step 1 + 2 – serve stale data instantly, then re-fetch in the background.
+    // All setState calls are inside the async function to satisfy React's rule
+    // against calling setState synchronously in an effect body.
     async function loadOSM() {
-      setOsmError(false);
-      setLoadingNearby(true);
+      // Serve stale cache first (no spinner on revisit)
+      const stale = cacheGet(osmCacheKey);
+      if (stale !== null && !cancelled) {
+        setOsmPharmacies(stale);
+        setOsmError(false);
+      }
+
+      // Only show full spinner when there is no cached data at all
+      if (stale === null) setLoadingNearby(true);
       try {
         let osm = [];
         if (locationStatus === "granted" && userLocation) {
-          // 5km radius — large enough to find pharmacies even in less-dense areas
-          osm = await getNearbyPharmacies(
-            userLocation.lat,
-            userLocation.lon,
-            5000
-          );
+          osm = await getNearbyPharmacies(userLocation.lat, userLocation.lon, 5000);
         } else {
-          // If skipped, load all Egypt pharmacies
           osm = await getEgyptPharmacies();
         }
-        // Only update state if this effect run is still current
-        if (!cancelled) {
-          setOsmPharmacies(osm);
-        }
+        if (!cancelled) setOsmPharmacies(osm);
       } catch (err) {
         console.error(err);
-        if (!cancelled) {
-          setOsmError(true);
-        }
+        // Only show error if we have nothing cached to fall back on
+        if (!cancelled && stale === null) setOsmError(true);
       } finally {
-        if (!cancelled) {
-          setLoadingNearby(false);
-        }
+        if (!cancelled) setLoadingNearby(false);
       }
     }
 
@@ -244,17 +250,24 @@ function Map({
   }, [locationStatus, userLocation, retryKey]);
 
 
-  // Reload DB pharmacies whenever refreshKey changes
+  // Reload DB pharmacies whenever refreshKey changes (stale-while-revalidate)
   useEffect(() => {
     const controller = new AbortController();
+    const dbCacheKey = "db:pharmacies";
 
+    // All setState calls are inside the async function to satisfy React's rule
+    // against calling setState synchronously in an effect body.
     async function loadMyPharmacies() {
-      setLoadingDB(true);
+      // Show stale data instantly — skip spinner on revisit
+      const stale = cacheGet(dbCacheKey);
+      if (stale !== null) setMyPharmacies(stale);
+
+      if (stale === null) setLoadingDB(true);
       try {
-        const res = await api.get("/pharmacies", {
-          signal: controller.signal,
-        });
+        const res = await api.get("/pharmacies", { signal: controller.signal });
         setMyPharmacies(res.data);
+        // Cache for 5 minutes — short because pharmacies can be added/edited
+        cacheSet(dbCacheKey, res.data, 5 * 60 * 1000);
       } catch (err) {
         if (err.name !== "AbortError" && err.code !== "ERR_CANCELED") {
           console.error(err);
