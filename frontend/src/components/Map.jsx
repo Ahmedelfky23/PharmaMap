@@ -11,7 +11,7 @@ import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
-import { getEgyptPharmacies } from "../services/overpass";
+import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
 import api from "../services/api";
 import L from "leaflet";
 
@@ -180,19 +180,28 @@ function Map({
   setNewLocation,
   refreshKey,
   userLocation, // { lat, lon } or null
+  locationStatus,
   isDarkMode,
 }) {
   const [osmPharmacies, setOsmPharmacies] = useState([]);
   const [myPharmacies, setMyPharmacies] = useState([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
 
-  // Load OSM pharmacies
+  // Load OSM pharmacies based on location status
   useEffect(() => {
+    if (locationStatus === "pending") return; // Wait for user decision
+
     async function loadOSM() {
       setLoadingNearby(true);
       try {
-        // Load all Egypt pharmacies (clustering handles performance now)
-        const osm = await getEgyptPharmacies();
+        let osm = [];
+        if (locationStatus === "granted" && userLocation) {
+          // Load only nearby pharmacies for better performance
+          osm = await getNearbyPharmacies(userLocation.lat, userLocation.lon, 5000); // 5km radius
+        } else {
+          // If skipped, load all Egypt pharmacies
+          osm = await getEgyptPharmacies();
+        }
         setOsmPharmacies(osm);
       } catch (err) {
         console.error(err);
@@ -201,7 +210,7 @@ function Map({
       }
     }
     loadOSM();
-  }, []);
+  }, [locationStatus, userLocation]);
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {

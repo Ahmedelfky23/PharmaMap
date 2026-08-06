@@ -111,6 +111,7 @@ function App() {
             setNewLocation={setNewLocation}
             refreshKey={refreshKey}
             userLocation={locationStatus !== "pending" ? userLocation : null}
+            locationStatus={locationStatus}
             isDarkMode={isDarkMode}
           />
         </div>
