@@ -57,6 +57,10 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [imgError, setImgError] = useState(false);
 
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editReviewText, setEditReviewText] = useState("");
+  const [editReviewRating, setEditReviewRating] = useState(5);
+
   // Reset image error when pharmacy changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -107,6 +111,42 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
     } catch (err) {
       console.error(err);
       alert("Failed to add review.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDeleteReview(reviewId) {
+    if (!window.confirm("هل أنت متأكد إنك عايز تمسح التقييم ده؟")) return;
+    try {
+      await api.delete(`/reviews/${currentPharmacyId}/${reviewId}`);
+      setReviews(reviews.filter((r) => r.id !== reviewId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete review.");
+    }
+  }
+
+  function startEditingReview(review) {
+    setEditingReviewId(review.id);
+    setEditReviewText(review.text);
+    setEditReviewRating(review.rating);
+  }
+
+  async function handleUpdateReview(e, reviewId) {
+    e.preventDefault();
+    if (!editReviewText.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await api.put(`/reviews/${currentPharmacyId}/${reviewId}`, {
+        rating: editReviewRating,
+        text: editReviewText,
+      });
+      setReviews(reviews.map((r) => (r.id === reviewId ? res.data : r)));
+      setEditingReviewId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update review.");
     } finally {
       setIsSubmitting(false);
     }
@@ -305,18 +345,86 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                     key={rev.id}
                     className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-100 dark:border-slate-600/50"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex gap-0.5 text-yellow-400 text-base">
-                        {Array(rev.rating).fill("★").join("")}
-                        <span className="text-slate-300">
-                          {Array(5 - rev.rating).fill("★").join("")}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">
-                        {new Date(rev.createdAt).toLocaleDateString("ar-EG")}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{rev.text}</p>
+                    {editingReviewId === rev.id ? (
+                      <form onSubmit={(e) => handleUpdateReview(e, rev.id)}>
+                        <div className="mb-3 flex gap-1">
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setEditReviewRating(num)}
+                              style={{
+                                fontSize: "1.25rem",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: num <= editReviewRating ? "#FBBF24" : "#D1D5DB",
+                                padding: "0 2px",
+                                lineHeight: 1,
+                              }}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          className="w-full bg-white dark:bg-slate-600 dark:text-white border border-slate-200 dark:border-slate-500 rounded-lg p-2 text-sm mb-3 focus:outline-none focus:border-blue-400"
+                          rows={3}
+                          value={editReviewText}
+                          onChange={(e) => setEditReviewText(e.target.value)}
+                          required
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 rounded-lg text-sm transition disabled:opacity-50"
+                          >
+                            حفظ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingReviewId(null)}
+                            className="flex-1 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white font-semibold py-1.5 rounded-lg text-sm transition"
+                          >
+                            إلغاء
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 text-yellow-400 text-base">
+                            <div className="flex gap-0.5">
+                              {Array(rev.rating).fill("★").join("")}
+                              <span className="text-slate-300">
+                                {Array(5 - rev.rating).fill("★").join("")}
+                              </span>
+                            </div>
+                            <span className="text-xs text-slate-400 ml-2">
+                              {new Date(rev.createdAt).toLocaleDateString("ar-EG")}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditingReview(rev)}
+                              className="text-blue-500 hover:text-blue-700 transition"
+                              title="تعديل"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReview(rev.id)}
+                              className="text-red-500 hover:text-red-700 transition"
+                              title="حذف"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 wrap-break-word whitespace-pre-wrap">{rev.text}</p>
+                      </>
+                    )}
                   </div>
                 ))
               )}

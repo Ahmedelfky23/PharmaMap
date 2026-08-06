@@ -43,4 +43,42 @@ router.post("/:pharmacyId", async (req, res) => {
   }
 });
 
+// Edit a review
+router.put("/:pharmacyId/:reviewId", async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { rating, text } = req.body;
+
+    if (!rating || !text) {
+      return res.status(400).json({ error: "Rating and text are required" });
+    }
+
+    const updatedReview = await prisma.review.update({
+      where: { id: parseInt(reviewId) },
+      data: {
+        rating: parseInt(rating),
+        text,
+      },
+    });
+    res.json(updatedReview);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update review" });
+  }
+});
+
+// Delete a review
+router.delete("/:pharmacyId/:reviewId", async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    await prisma.review.delete({
+      where: { id: parseInt(reviewId) },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete review" });
+  }
+});
+
 module.exports = router;
