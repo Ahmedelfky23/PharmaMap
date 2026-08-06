@@ -333,17 +333,29 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                 <label className="text-xs font-semibold text-slate-600">
                   التقييم:
                 </label>
-                <select
-                  value={newReviewRating}
-                  onChange={(e) => setNewReviewRating(Number(e.target.value))}
-                  className="text-sm border border-slate-200 rounded p-1 focus:outline-none focus:border-blue-400"
-                >
-                  {[5, 4, 3, 2, 1].map((num) => (
-                    <option key={num} value={num}>
-                      {num} ★
-                    </option>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setNewReviewRating(num)}
+                      style={{
+                        fontSize: "1.5rem",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: num <= newReviewRating ? "#FBBF24" : "#D1D5DB",
+                        padding: "0 2px",
+                        transition: "color 0.15s, transform 0.15s",
+                        lineHeight: 1,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.25)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    >
+                      ★
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
               <textarea
                 className="w-full border border-slate-200 rounded-lg p-2 text-sm mb-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
