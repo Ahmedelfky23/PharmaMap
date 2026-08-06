@@ -13,7 +13,7 @@ function SearchBar({ searchTerm, setSearchTerm }) {
           placeholder="ابحث عن صيدلية..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white/85 backdrop-blur-md rounded-2xl shadow-xl shadow-slate-200/50 border border-white/80 p-3 md:p-4 pl-11 pr-5 text-slate-700 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-sm md:text-base"
+          className="w-full bg-white/85 dark:bg-slate-800/85 backdrop-blur-md rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-white/80 dark:border-slate-700/80 p-3 md:p-4 pl-11 pr-5 text-slate-700 dark:text-slate-200 outline-none transition-all focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 text-sm md:text-base"
           dir="rtl"
         />
       </div>

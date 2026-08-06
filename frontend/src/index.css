@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: 'Outfit', sans-serif;
 }
@@ -7,7 +9,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #e2e8f0; /* darker slate-200 background */
+  @apply bg-slate-200 dark:bg-slate-900 transition-colors duration-300;
 }
 
 /* Custom Modern Scrollbar */

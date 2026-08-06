@@ -79,12 +79,12 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
 
   if (!pharmacy) {
     return (
-      <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/60 flex flex-col items-center justify-center p-8 text-center h-full">
+      <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center justify-center p-8 text-center h-full transition-colors duration-300">
         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
           <span className="text-3xl">📍</span>
         </div>
-        <h2 className="text-2xl font-bold text-slate-700 mb-2">إختر صيدلية</h2>
-        <p className="text-slate-500">
+        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2">إختر صيدلية</h2>
+        <p className="text-slate-500 dark:text-slate-400">
           اضغط على أي علامة في الخريطة لعرض تفاصيل الصيدلية هنا.
         </p>
       </div>
@@ -152,7 +152,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
         <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       )}
 
-      <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden flex flex-col h-full">
+      <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden flex flex-col h-full transition-colors duration-300">
 
         {/* ── Hero Image ─────────────────────────────────── */}
         <div className="relative w-full group" style={{ height: hasImage ? "15rem" : "10rem" }}>
@@ -260,7 +260,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                 )}
 
                 {/* Rating */}
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition hover:border-blue-200 hover:shadow-sm">
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 transition hover:border-blue-200 dark:hover:border-blue-500 hover:shadow-sm">
                   <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 shrink-0">
                     ⭐
                   </div>
@@ -269,7 +269,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                       التصنيف
                     </p>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-bold border self-start ${getRatingColor(pharmacy.rating)}`}
+                      className={`px-3 py-1 rounded-full text-sm font-bold border self-start ${getRatingColor(pharmacy.rating)} dark:opacity-90`}
                     >
                       Class {pharmacy.rating || "N/A"}
                     </span>
@@ -291,19 +291,19 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
           </div>
 
           {/* ── Reviews ──────────────────────────────────── */}
-          <div className="pt-6 border-t border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">التقييمات</h3>
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">التقييمات</h3>
 
             <div className="space-y-4 mb-6">
               {reviews.length === 0 ? (
-                <p className="text-slate-500 text-sm text-center">
+                <p className="text-slate-500 dark:text-slate-400 text-sm text-center">
                   لا توجد تقييمات بعد. كن أول من يقيّم!
                 </p>
               ) : (
                 reviews.map((rev) => (
                   <div
                     key={rev.id}
-                    className="bg-slate-50 p-4 rounded-xl border border-slate-100"
+                    className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-100 dark:border-slate-600/50"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex gap-0.5 text-yellow-400 text-base">
@@ -316,7 +316,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                         {new Date(rev.createdAt).toLocaleDateString("ar-EG")}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-700">{rev.text}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{rev.text}</p>
                   </div>
                 ))
               )}
@@ -324,9 +324,9 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
 
             <form
               onSubmit={handleAddReview}
-              className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm"
+              className="bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-600 rounded-xl p-4 shadow-sm"
             >
-              <h4 className="text-sm font-bold text-blue-800 mb-3">
+              <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">
                 أضف تقييمك
               </h4>
               <div className="mb-3 flex items-center gap-2">
@@ -358,7 +358,7 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
                 </div>
               </div>
               <textarea
-                className="w-full border border-slate-200 rounded-lg p-2 text-sm mb-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                className="w-full bg-white dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg p-2 text-sm mb-3 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-400"
                 placeholder="اكتب تقييمك هنا..."
                 rows={3}
                 value={newReviewText}
@@ -378,10 +378,10 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
 
         {/* ── Edit / Delete — DB only ─────────────────────── */}
         {isDatabasePharmacy && (
-          <div className="border-t border-slate-100 p-5 bg-slate-50/50 flex gap-3">
+          <div className="border-t border-slate-100 dark:border-slate-700 p-5 bg-slate-50/50 dark:bg-slate-800/50 flex gap-3">
             <button
               onClick={() => onEdit(pharmacy)}
-              className="flex-1 bg-white border-2 border-blue-600 text-blue-700 hover:bg-blue-50 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm"
+              className="flex-1 bg-white dark:bg-slate-700 border-2 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-600 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm"
             >
               <span>✏️</span> تعديل
             </button>
@@ -401,25 +401,25 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
 // ─── Reusable Info Card ──────────────────────────────────────────────────────
 function InfoCard({ icon, iconBg, iconColor, label, value, isLink }) {
   return (
-    <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition hover:border-blue-200 hover:shadow-sm">
+    <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 transition hover:border-blue-200 dark:hover:border-blue-500 hover:shadow-sm">
       <div
         className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center ${iconColor} shrink-0 text-lg`}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">
           {label}
         </p>
         {isLink ? (
           <a
             href={isLink}
-            className="text-slate-700 font-medium hover:text-blue-600 transition"
+            className="text-slate-700 dark:text-slate-200 font-medium hover:text-blue-600 dark:hover:text-blue-400 transition"
           >
             {value || "غير متاح"}
           </a>
         ) : (
-          <p className="text-slate-700 font-medium leading-relaxed wrap-break-word">
+          <p className="text-slate-700 dark:text-slate-200 font-medium leading-relaxed wrap-break-word">
             {value || "غير متاح"}
           </p>
         )}

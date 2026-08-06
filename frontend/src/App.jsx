@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Navbar from "./components/Navbar";
 import Map from "./components/Map";
@@ -8,6 +8,20 @@ import LocationPermission from "./components/LocationPermission";
 import api from "./services/api";
 
 function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [isDarkMode]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -80,12 +94,12 @@ function App() {
         />
       )}
 
-      <Navbar />
+      <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
 
       {/* Desktop layout: side-by-side | Mobile: map full, sidebar as bottom sheet */}
       <div className="flex flex-1 overflow-hidden lg:px-[10%] lg:py-6 lg:gap-8 relative">
         {/* Map Container */}
-        <div className="flex-1 min-w-0 h-full relative rounded-none lg:rounded-3xl overflow-hidden shadow-xl border-0 lg:border lg:border-slate-200 bg-white">
+        <div className="flex-1 min-w-0 h-full relative rounded-none lg:rounded-3xl overflow-hidden shadow-xl border-0 lg:border lg:border-slate-200 dark:lg:border-slate-700 bg-white dark:bg-slate-900 transition-colors duration-300">
           <Map
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -97,6 +111,7 @@ function App() {
             setNewLocation={setNewLocation}
             refreshKey={refreshKey}
             userLocation={locationStatus !== "pending" ? userLocation : null}
+            isDarkMode={isDarkMode}
           />
         </div>
 
@@ -117,19 +132,19 @@ function App() {
           style={{ maxHeight: "75vh" }}
         >
           {/* Pull handle */}
-          <div className="bg-white rounded-t-3xl pt-3 pb-0 flex justify-center border-t border-slate-200 shadow-2xl">
-            <div className="w-10 h-1 bg-slate-300 rounded-full mb-2" />
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl pt-3 pb-0 flex justify-center border-t border-slate-200 dark:border-slate-800 shadow-2xl transition-colors duration-300">
+            <div className="w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full mb-2" />
           </div>
           {/* Close button */}
           {selectedPharmacy && (
             <button
               onClick={() => setSelectedPharmacy(null)}
-              className="absolute top-3 right-4 z-10 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition"
+              className="absolute top-3 right-4 z-10 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               ✕
             </button>
           )}
-          <div className="bg-white overflow-y-auto" style={{ maxHeight: "calc(75vh - 32px)" }}>
+          <div className="bg-white dark:bg-slate-900 overflow-y-auto transition-colors duration-300" style={{ maxHeight: "calc(75vh - 32px)" }}>
             <Sidebar
               pharmacy={selectedPharmacy}
               onEdit={handleEdit}

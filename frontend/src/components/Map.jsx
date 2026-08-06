@@ -108,6 +108,7 @@ function Map({
   setNewLocation,
   refreshKey,
   userLocation, // { lat, lon } or null
+  isDarkMode,
 }) {
   const [osmPharmacies, setOsmPharmacies] = useState([]);
   const [myPharmacies, setMyPharmacies] = useState([]);
@@ -164,6 +165,14 @@ function Map({
     : [26.8206, 30.8025];
   const initialZoom = userLocation ? 14 : 6;
 
+  const tileUrl = isDarkMode
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  const tileAttribution = isDarkMode
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    : "© OpenStreetMap";
+
   return (
     <>
       <AddPharmacyButton isAdding={isAdding} setIsAdding={setIsAdding} />
@@ -189,8 +198,8 @@ function Map({
         style={{ width: "100%", height: "100%" }}
       >
         <TileLayer
-          attribution="© OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileAttribution}
+          url={tileUrl}
         />
 
         {/* Fly to user location smoothly */}
