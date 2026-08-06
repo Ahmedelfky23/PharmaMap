@@ -4,6 +4,7 @@ const compression = require("compression");
 
 const pharmacyRoutes = require("./routes/pharmacyRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const osmRoutes = require("./routes/osmRoutes");
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 
 app.use("/api/pharmacies", pharmacyRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/osm", osmRoutes);
 
 app.get("/", (req, res) => {
   res.json({
