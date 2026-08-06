@@ -2,12 +2,15 @@ const express = require("express");
 
 const {
   getAllPharmacies,
+  getNearbyPharmacies,
   createPharmacy,
   updatePharmacy,
   deletePharmacy,
 } = require("../controllers/pharmacyController");
 
 const router = express.Router();
+
+router.get("/nearby", getNearbyPharmacies);
 
 router.get("/", getAllPharmacies);
 

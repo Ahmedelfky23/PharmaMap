@@ -35,6 +35,10 @@ model Pharmacy {
 
   longitude     Float
 
+  osmId         String?  @unique
+
+  source        String?  @default("user")
+
   createdAt     DateTime @default(now())
 }
 

@@ -5,28 +5,43 @@ const prisma = new PrismaClient();
 // Pre-warm the DB connection on startup so the first real request is fast
 prisma.$connect().catch((err) => console.error("Prisma connect error:", err));
 
-// In-memory cache — avoids hitting Postgres on every GET request.
-// Invalidated on every mutation so data is always fresh after changes.
-let pharmacyCache = null;
-
-function clearCache() {
-  pharmacyCache = null;
-}
+// No in-memory cache used as we now fetch based on map bounds
 
 const getAllPharmacies = async (req, res) => {
   try {
-    // Serve from in-memory cache if available (cache is cleared on any mutation)
-    if (pharmacyCache) {
-      return res.json(pharmacyCache);
+    const { north, south, east, west, search } = req.query;
+
+    let whereClause = {};
+
+    // Map bounds filtering
+    if (north && south && east && west) {
+      whereClause = {
+        latitude: {
+          lte: parseFloat(north),
+          gte: parseFloat(south),
+        },
+        longitude: {
+          lte: parseFloat(east),
+          gte: parseFloat(west),
+        },
+      };
+    }
+
+    // Search filtering
+    if (search) {
+      whereClause.name = {
+        contains: search,
+        mode: "insensitive",
+      };
     }
 
     const pharmacies = await prisma.pharmacy.findMany({
+      where: whereClause,
       orderBy: {
         id: "desc",
       },
     });
 
-    pharmacyCache = pharmacies;
     res.json(pharmacies);
   } catch (error) {
     res.status(500).json({
@@ -41,7 +56,6 @@ const createPharmacy = async (req, res) => {
       data: req.body,
     });
 
-    clearCache(); // Next GET will re-fetch fresh data from DB
     res.status(201).json(pharmacy);
   } catch (error) {
     res.status(500).json({
@@ -58,7 +72,6 @@ const updatePharmacy = async (req, res) => {
       data: req.body,
     });
 
-    clearCache(); // Next GET will re-fetch fresh data from DB
     res.json(pharmacy);
   } catch (error) {
     res.status(500).json({
@@ -75,7 +88,6 @@ const deletePharmacy = async (req, res) => {
       },
     });
 
-    clearCache(); // Next GET will re-fetch fresh data from DB
     res.json({
       message: "Deleted Successfully",
     });
@@ -85,8 +97,52 @@ const deletePharmacy = async (req, res) => {
     });
   }
 };
+const getNearbyPharmacies = async (req, res) => {
+  try {
+    const { lat, lng, radius = 3000 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ message: "lat and lng are required" });
+    }
+
+    // Since Prisma doesn't support geospatial queries out of the box without PostGIS extension and raw queries,
+    // and setting up PostGIS requires database modifications that might not be available on all managed databases,
+    // we use a simple bounding box to filter the database first, then (optionally) calculate exact distance in JS.
+    
+    // 1 degree latitude is approx 111km.
+    // 1 degree longitude is approx 111km * cos(latitude).
+    const radiusInDegreesLat = radius / 111000;
+    const radiusInDegreesLng = radius / (111000 * Math.cos(parseFloat(lat) * (Math.PI / 180)));
+
+    const north = parseFloat(lat) + radiusInDegreesLat;
+    const south = parseFloat(lat) - radiusInDegreesLat;
+    const east = parseFloat(lng) + radiusInDegreesLng;
+    const west = parseFloat(lng) - radiusInDegreesLng;
+
+    const pharmacies = await prisma.pharmacy.findMany({
+      where: {
+        latitude: {
+          lte: north,
+          gte: south,
+        },
+        longitude: {
+          lte: east,
+          gte: west,
+        },
+      },
+    });
+
+    res.json(pharmacies);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllPharmacies,
+  getNearbyPharmacies,
   createPharmacy,
   updatePharmacy,
   deletePharmacy,
