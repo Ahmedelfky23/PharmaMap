@@ -36,7 +36,11 @@ async function overpassQuery(query) {
     try {
       const response = await fetch(url, {
         method: "POST",
-        body: query,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        // Overpass API requires form-encoded body: data=<query>
+        body: "data=" + encodeURIComponent(query),
       });
 
       if (!response.ok) {
