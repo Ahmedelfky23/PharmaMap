@@ -1,4 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
+const axios = require("axios");
+const dns = require("node:dns");
+
+// Fix for Node.js 18+ IPv6 ECONNREFUSED issues with fetch/axios
+dns.setDefaultResultOrder("ipv4first");
+
 const prisma = new PrismaClient();
 
 const OVERPASS_ENDPOINTS = [
@@ -26,25 +32,22 @@ async function fetchEgyptPharmacies() {
     console.log(`\n[Import] Attempting to fetch from Overpass API: ${endpoint}`);
     
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
+      const response = await axios.post(endpoint, "data=" + encodeURIComponent(query), {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "User-Agent": "PharmaMap-Egypt-Importer/1.0 (Ahmedelfky23/PharmaMap)",
         },
-        body: "data=" + encodeURIComponent(query),
+        timeout: 300000, // 5 minutes timeout for the request
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       console.log(`[Import] Successfully fetched data from ${endpoint}`);
-      return data.elements;
+      return response.data.elements;
     } catch (err) {
       console.error(`[Import] Fetch failed for ${endpoint}`);
-      console.error(err);
+      console.error(err.message);
+      if (err.response) {
+        console.error(`Status: ${err.response.status}`);
+      }
       lastError = err;
       // loop to next endpoint
     }
