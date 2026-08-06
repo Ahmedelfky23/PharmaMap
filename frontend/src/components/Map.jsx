@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
-  ZoomControl,
+  useMap,
 } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 
 import SearchBar from "./SearchBar";
 import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
-import { getEgyptPharmacies } from "../services/overpass";
-import { getDBPharmacies } from "../services/api";
+import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
+import api from "../services/api";
 import L from "leaflet";
 
 // Default blue marker icon
@@ -82,7 +81,22 @@ const userIcon = new L.DivIcon({
   iconAnchor: [10, 10],
 });
 
+// Component to fly to a location when userLocation changes
+function FlyToLocation({ userLocation }) {
+  const map = useMap();
+  const didFly = useRef(false);
 
+  useEffect(() => {
+    if (userLocation && !didFly.current) {
+      map.flyTo([userLocation.lat, userLocation.lon], 14, {
+        duration: 2,
+      });
+      didFly.current = true;
+    }
+  }, [userLocation, map]);
+
+  return null;
+}
 
 function Map({
   searchTerm,
@@ -97,31 +111,41 @@ function Map({
 }) {
   const [osmPharmacies, setOsmPharmacies] = useState([]);
   const [myPharmacies, setMyPharmacies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadingNearby, setLoadingNearby] = useState(false);
 
   // Load OSM pharmacies
   useEffect(() => {
     async function loadOSM() {
-      setIsLoading(true);
-      try {
+      if (userLocation) {
+        // Load nearby pharmacies only
+        setLoadingNearby(true);
+        try {
+          const nearby = await getNearbyPharmacies(
+            userLocation.lat,
+            userLocation.lon,
+            3000
+          );
+          setOsmPharmacies(nearby);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingNearby(false);
+        }
+      } else {
+        // Load all Egypt pharmacies
         const osm = await getEgyptPharmacies();
         setOsmPharmacies(osm);
-      } catch (err) {
-        console.error("Error loading OSM pharmacies:", err);
-      } finally {
-        setIsLoading(false);
       }
     }
     loadOSM();
-  }, []);
+  }, [userLocation]);
 
   // Reload DB pharmacies whenever refreshKey changes
   useEffect(() => {
     async function loadMyPharmacies() {
       try {
-        const forceRefresh = refreshKey > 0;
-        const data = await getDBPharmacies(forceRefresh);
-        setMyPharmacies(data);
+        const res = await api.get("/pharmacies");
+        setMyPharmacies(res.data);
       } catch (err) {
         console.log(err);
       }
@@ -135,8 +159,10 @@ function Map({
       .includes(searchTerm.toLowerCase())
   );
 
-  const initialCenter = [26.8206, 30.8025];
-  const initialZoom = 6;
+  const initialCenter = userLocation
+    ? [userLocation.lat, userLocation.lon]
+    : [26.8206, 30.8025];
+  const initialZoom = userLocation ? 14 : 6;
 
   return (
     <>
@@ -145,14 +171,14 @@ function Map({
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
       {/* Loading overlay */}
-      {isLoading && (
+      {loadingNearby && (
         <div
           className="absolute inset-0 z-1000 flex flex-col items-center justify-center gap-4"
           style={{ background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)" }}
         >
           <div className="w-14 h-14 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
           <p className="text-white font-semibold text-lg">
-            جاري تحميل الصيدليات على الخريطة...
+            جاري البحث عن صيدليات قريبة منك...
           </p>
         </div>
       )}
@@ -161,14 +187,14 @@ function Map({
         center={initialCenter}
         zoom={initialZoom}
         style={{ width: "100%", height: "100%" }}
-        zoomControl={false}
       >
         <TileLayer
           attribution="© OpenStreetMap"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {/* Zoom buttons at bottom-right, away from the search bar */}
-        <ZoomControl position="bottomright" />
+
+        {/* Fly to user location smoothly */}
+        {userLocation && <FlyToLocation userLocation={userLocation} />}
 
         <AddPharmacyMapClick
           isAdding={isAdding}
@@ -184,38 +210,36 @@ function Map({
           />
         )}
 
-        <MarkerClusterGroup chunkedLoading>
-          {/* OSM pharmacies */}
-          {filteredOSM.map((pharmacy) => {
-            const lat = pharmacy.lat ?? pharmacy.center?.lat;
-            const lon = pharmacy.lon ?? pharmacy.center?.lon;
+        {/* OSM pharmacies */}
+        {filteredOSM.map((pharmacy) => {
+          const lat = pharmacy.lat ?? pharmacy.center?.lat;
+          const lon = pharmacy.lon ?? pharmacy.center?.lon;
 
-            if (!lat || !lon) return null;
+          if (!lat || !lon) return null;
 
-            return (
-              <Marker
-                key={`osm-${pharmacy.id}`}
-                position={[lat, lon]}
-                icon={defaultIcon}
-                eventHandlers={{
-                  click: () => setSelectedPharmacy(pharmacy),
-                }}
-              />
-            );
-          })}
-
-          {/* DB pharmacies */}
-          {myPharmacies.map((pharmacy) => (
+          return (
             <Marker
-              key={`db-${pharmacy.id}`}
-              position={[pharmacy.latitude, pharmacy.longitude]}
-              icon={greenIcon}
+              key={`osm-${pharmacy.id}`}
+              position={[lat, lon]}
+              icon={defaultIcon}
               eventHandlers={{
                 click: () => setSelectedPharmacy(pharmacy),
               }}
             />
-          ))}
-        </MarkerClusterGroup>
+          );
+        })}
+
+        {/* DB pharmacies */}
+        {myPharmacies.map((pharmacy) => (
+          <Marker
+            key={`db-${pharmacy.id}`}
+            position={[pharmacy.latitude, pharmacy.longitude]}
+            icon={greenIcon}
+            eventHandlers={{
+              click: () => setSelectedPharmacy(pharmacy),
+            }}
+          />
+        ))}
       </MapContainer>
     </>
   );
