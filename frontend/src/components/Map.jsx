@@ -11,7 +11,7 @@ import AddPharmacyButton from "./AddPharmacyButton";
 import AddPharmacyMapClick from "./AddPharmacyMapClick";
 
 import { getEgyptPharmacies, getNearbyPharmacies } from "../services/overpass";
-import { getDBPharmacies } from "../services/api";
+import api from "../services/api";
 import L from "leaflet";
 
 // Default blue marker icon
@@ -144,8 +144,8 @@ function Map({
   useEffect(() => {
     async function loadMyPharmacies() {
       try {
-        const data = await getDBPharmacies();
-        setMyPharmacies(data);
+        const res = await api.get("/pharmacies");
+        setMyPharmacies(res.data);
       } catch (err) {
         console.log(err);
       }
