@@ -4,6 +4,11 @@ node_modules/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+# Environment variables
+.env
+*.env
+backend/.env
+frontend/.env
 frontend/.env.local
 
 # Backend

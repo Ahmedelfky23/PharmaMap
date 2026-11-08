@@ -61,7 +61,6 @@ function Sidebar({ pharmacy, onEdit, onDelete }) {
   const [editReviewText, setEditReviewText] = useState("");
   const [editReviewRating, setEditReviewRating] = useState(5);
 
-  // Reset image error when pharmacy changes
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setImgError(false);
